@@ -4,8 +4,9 @@ import { useEffect } from 'react'
 import { UserProfile } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import config from "@/config"
+import dynamic from 'next/dynamic'
 
-export default function UserProfilePage() {
+function UserProfileComponent() {
     const router = useRouter()
 
     useEffect(() => {
@@ -15,7 +16,7 @@ export default function UserProfilePage() {
     }, [router])
 
     if (!config?.auth?.enabled) {
-        return null 
+        return null
     }
 
     return (
@@ -26,3 +27,6 @@ export default function UserProfilePage() {
         </div>
     )
 }
+
+// Disable SSR for this page to prevent Clerk useSession hydration errors during build
+export default dynamic(() => Promise.resolve(UserProfileComponent), { ssr: false })
