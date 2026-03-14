@@ -1,0 +1,22 @@
+import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js'
+
+/** @type {import('next').NextConfig} */
+const makeConfig = (phase) => {
+  /** @type {import('next').NextConfig} */
+  const nextConfig = {
+    distDir: phase === PHASE_DEVELOPMENT_SERVER ? '.next-dev' : '.next',
+    images: {
+      domains: ['images.unsplash.com', 'cms.travelworld.nl'],
+    },
+    webpack: (config, { dev }) => {
+      if (dev) {
+        config.cache = false
+      }
+      return config
+    },
+  }
+
+  return nextConfig
+}
+
+export default makeConfig
