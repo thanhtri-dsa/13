@@ -6,6 +6,16 @@ export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
+function normalizeTags(tags: unknown): string[] {
+  if (Array.isArray(tags)) return tags.map((t) => String(t).trim()).filter(Boolean)
+  if (typeof tags === 'string') return tags.split(',').map((t) => t.trim()).filter(Boolean)
+  return []
+}
+
+function serializeTags(tags: unknown): string {
+  return normalizeTags(tags).join(',')
+}
+
 export async function GET(request: Request) {
   // Remove authentication for GET request to allow public access to destinations
   const { searchParams } = new URL(request.url)
@@ -26,7 +36,11 @@ export async function GET(request: Request) {
     } else {
       destinations = await prisma.destination.findMany()
     }
-    return NextResponse.json(destinations)
+    const normalized = destinations.map((d) => ({
+      ...d,
+      tags: normalizeTags(d.tags),
+    }))
+    return NextResponse.json(normalized)
   } catch (error) {
     console.error('Error fetching destinations:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -35,10 +49,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth()
+    const clerkEnabled =
+      !!process.env.CLERK_SECRET_KEY?.trim() &&
+      !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
+      (process.env.NODE_ENV === 'production' || process.env.FORCE_CLERK_AUTH === 'true')
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (clerkEnabled) {
+      const authRes = await auth()
+      if (!authRes.userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     const {
@@ -63,7 +83,7 @@ export async function POST(request: Request) {
         country,
         city,
         amount: parseFloat(amount),
-        tags,
+        tags: serializeTags(tags),
         imageData,
         description,
         daysNights: parseInt(daysNights),
@@ -71,7 +91,7 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json(destination)
+    return NextResponse.json({ ...destination, tags: normalizeTags(destination.tags) })
   } catch (error) {
     console.error('Error creating destination:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

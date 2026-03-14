@@ -4,6 +4,16 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+function normalizeTags(tags: unknown): string[] {
+  if (Array.isArray(tags)) return tags.map((t) => String(t).trim()).filter(Boolean)
+  if (typeof tags === 'string') return tags.split(',').map((t) => t.trim()).filter(Boolean)
+  return []
+}
+
+function serializeTags(tags: unknown): string {
+  return normalizeTags(tags).join(',')
+}
+
 // Public GET endpoint - /api/destinations/[id]
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -16,7 +26,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Destination not found' }, { status: 404 })
     }
 
-    return NextResponse.json(destination)
+    return NextResponse.json({ ...destination, tags: normalizeTags(destination.tags) })
   } catch (error) {
     console.error('Error fetching destination:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -26,10 +36,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
 // Protected PUT endpoint - /api/destinations/[id]
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { userId } = await auth()
+    const clerkEnabled =
+      !!process.env.CLERK_SECRET_KEY?.trim() &&
+      !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
+      (process.env.NODE_ENV === 'production' || process.env.FORCE_CLERK_AUTH === 'true')
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (clerkEnabled) {
+      const authRes = await auth()
+      if (!authRes.userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     const id = params.id
@@ -54,7 +70,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         country,
         city,
         amount: parseFloat(amount),
-        tags,
+        tags: serializeTags(tags),
         imageData,
         description,
         daysNights: parseInt(daysNights),
@@ -62,7 +78,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       },
     })
 
-    return NextResponse.json(updatedDestination)
+    return NextResponse.json({ ...updatedDestination, tags: normalizeTags(updatedDestination.tags) })
   } catch (error) {
     console.error('Error updating destination:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -72,10 +88,16 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 // Protected DELETE endpoint - /api/destinations/[id]
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const { userId } = await auth()
+    const clerkEnabled =
+      !!process.env.CLERK_SECRET_KEY?.trim() &&
+      !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
+      (process.env.NODE_ENV === 'production' || process.env.FORCE_CLERK_AUTH === 'true')
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (clerkEnabled) {
+      const authRes = await auth()
+      if (!authRes.userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     const id = params.id

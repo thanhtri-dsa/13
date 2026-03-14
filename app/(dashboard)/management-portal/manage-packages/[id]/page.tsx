@@ -9,7 +9,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
-import { X, Loader2, Trash2 } from 'lucide-react'
+import { X, Loader2, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { TransportMode, normalizeMode, transportModeLabels } from '@/lib/emissions'
+import RouteMapLoader from '@/components/ui/RouteMapLoader'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,11 +34,35 @@ interface Package {
   price: number
   description: string
   included: { id: string; item: string; packageId: string }[]
+  itinerary?: Array<{
+    id: string
+    order: number
+    mode: string
+    fromName: string
+    toName: string
+    distanceKm: number | null
+    fromLat: number | null
+    fromLng: number | null
+    toLat: number | null
+    toLng: number | null
+    note: string | null
+  }>
 }
 
-interface PackageFormData extends Omit<Package, 'id' | 'price' | 'included'> {
+interface PackageFormData extends Omit<Package, 'id' | 'price' | 'included' | 'itinerary'> {
   price: string
   included: string[]
+  itinerary: Array<{
+    mode: TransportMode
+    fromName: string
+    toName: string
+    distanceKm: string
+    fromLat: string
+    fromLng: string
+    toLat: string
+    toLng: string
+    note: string
+  }>
 }
 
 const initialFormData: PackageFormData = {
@@ -46,7 +73,8 @@ const initialFormData: PackageFormData = {
   groupSize: '',
   price: '',
   description: '',
-  included: []
+  included: [],
+  itinerary: [],
 }
 
 export default function PackageForm({ params }: { params: { id?: string } }) {
@@ -60,6 +88,23 @@ export default function PackageForm({ params }: { params: { id?: string } }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+
+  const itineraryMapPoints = React.useMemo(() => {
+    const pts: Array<{ lat: number; lng: number; label?: string }> = []
+    const pushIfValid = (latRaw: string, lngRaw: string, label?: string) => {
+      const lat = latRaw.trim() ? Number(latRaw) : NaN
+      const lng = lngRaw.trim() ? Number(lngRaw) : NaN
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+      const last = pts[pts.length - 1]
+      if (last && Math.abs(last.lat - lat) < 0.000001 && Math.abs(last.lng - lng) < 0.000001) return
+      pts.push({ lat, lng, label })
+    }
+    for (const leg of formData.itinerary) {
+      pushIfValid(leg.fromLat, leg.fromLng, leg.fromName)
+      pushIfValid(leg.toLat, leg.toLng, leg.toName)
+    }
+    return pts.length >= 2 ? pts : undefined
+  }, [formData.itinerary])
 
   const fetchPackage = useCallback(async (id: string) => {
     setIsFetching(true)
@@ -78,7 +123,21 @@ export default function PackageForm({ params }: { params: { id?: string } }) {
         groupSize: pkg.groupSize,
         price: pkg.price.toString(),
         description: pkg.description,
-        included: pkg.included.map(item => item.item)
+        included: pkg.included.map(item => item.item),
+        itinerary: (pkg.itinerary ?? [])
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((l) => ({
+            mode: normalizeMode(l.mode),
+            fromName: l.fromName,
+            toName: l.toName,
+            distanceKm: typeof l.distanceKm === 'number' && Number.isFinite(l.distanceKm) ? String(l.distanceKm) : '',
+            fromLat: typeof l.fromLat === 'number' && Number.isFinite(l.fromLat) ? String(l.fromLat) : '',
+            fromLng: typeof l.fromLng === 'number' && Number.isFinite(l.fromLng) ? String(l.fromLng) : '',
+            toLat: typeof l.toLat === 'number' && Number.isFinite(l.toLat) ? String(l.toLat) : '',
+            toLng: typeof l.toLng === 'number' && Number.isFinite(l.toLng) ? String(l.toLng) : '',
+            note: l.note ?? '',
+          })),
       })
     } catch (error) {
       console.error('Error fetching package:', error)
@@ -109,6 +168,21 @@ export default function PackageForm({ params }: { params: { id?: string } }) {
     setIsLoading(true)
 
     try {
+      const itinerary = formData.itinerary
+        .map((l, idx) => ({
+          order: idx,
+          mode: l.mode,
+          fromName: l.fromName.trim(),
+          toName: l.toName.trim(),
+          distanceKm: l.distanceKm.trim() ? Number(l.distanceKm) : null,
+          fromLat: l.fromLat.trim() ? Number(l.fromLat) : null,
+          fromLng: l.fromLng.trim() ? Number(l.fromLng) : null,
+          toLat: l.toLat.trim() ? Number(l.toLat) : null,
+          toLng: l.toLng.trim() ? Number(l.toLng) : null,
+          note: l.note.trim() || null,
+        }))
+        .filter((l) => l.fromName && l.toName)
+
       const response = await fetch(
         `/api/packages${isEditing ? `/${params.id}` : ''}`,
         {
@@ -119,6 +193,7 @@ export default function PackageForm({ params }: { params: { id?: string } }) {
           body: JSON.stringify({
             ...formData,
             price: parseFloat(formData.price),
+            itinerary,
           }),
         }
       )
@@ -206,6 +281,39 @@ export default function PackageForm({ params }: { params: { id?: string } }) {
       ...prev,
       included: prev.included.filter(item => item !== itemToRemove)
     }))
+  }
+
+  const addLeg = () => {
+    setFormData((prev) => ({
+      ...prev,
+      itinerary: [
+        ...prev.itinerary,
+        { mode: 'CAR', fromName: '', toName: '', distanceKm: '', fromLat: '', fromLng: '', toLat: '', toLng: '', note: '' },
+      ],
+    }))
+  }
+
+  const updateLeg = (index: number, patch: Partial<PackageFormData['itinerary'][number]>) => {
+    setFormData((prev) => ({
+      ...prev,
+      itinerary: prev.itinerary.map((l, i) => (i === index ? { ...l, ...patch } : l)),
+    }))
+  }
+
+  const removeLeg = (index: number) => {
+    setFormData((prev) => ({ ...prev, itinerary: prev.itinerary.filter((_, i) => i !== index) }))
+  }
+
+  const moveLeg = (index: number, dir: -1 | 1) => {
+    setFormData((prev) => {
+      const next = prev.itinerary.slice()
+      const target = index + dir
+      if (target < 0 || target >= next.length) return prev
+      const temp = next[index]
+      next[index] = next[target]
+      next[target] = temp
+      return { ...prev, itinerary: next }
+    })
   }
 
   if (!mounted) {
@@ -326,6 +434,160 @@ export default function PackageForm({ params }: { params: { id?: string } }) {
                     </button>
                   </Badge>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Itinerary (legs + transport)</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addLeg}>
+                  Add Leg
+                </Button>
+              </div>
+
+              {formData.itinerary.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  Thêm các chặng để mô tả “đi bằng phương tiện gì”, “đến đâu thì đổi phương tiện”.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formData.itinerary.map((leg, idx) => (
+                    <div key={idx} className="rounded-lg border p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-semibold">Leg {idx + 1}</div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveLeg(idx, -1)}
+                            disabled={idx === 0}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => moveLeg(idx, 1)}
+                            disabled={idx === formData.itinerary.length - 1}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => removeLeg(idx)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-2">
+                          <Label>Mode</Label>
+                          <Select value={leg.mode} onValueChange={(v) => updateLeg(idx, { mode: normalizeMode(v) })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(transportModeLabels) as TransportMode[]).map((m) => (
+                                <SelectItem key={m} value={m}>
+                                  {transportModeLabels[m]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>From</Label>
+                          <Input
+                            value={leg.fromName}
+                            onChange={(e) => updateLeg(idx, { fromName: e.target.value })}
+                            placeholder="Điểm xuất phát"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>To</Label>
+                          <Input
+                            value={leg.toName}
+                            onChange={(e) => updateLeg(idx, { toName: e.target.value })}
+                            placeholder="Điểm đến"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-2">
+                          <Label>Distance (km)</Label>
+                          <Input
+                            value={leg.distanceKm}
+                            onChange={(e) => updateLeg(idx, { distanceKm: e.target.value })}
+                            placeholder="Ví dụ: 125"
+                            inputMode="decimal"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>From (lat,lng)</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              value={leg.fromLat}
+                              onChange={(e) => updateLeg(idx, { fromLat: e.target.value })}
+                              placeholder="lat"
+                              inputMode="decimal"
+                            />
+                            <Input
+                              value={leg.fromLng}
+                              onChange={(e) => updateLeg(idx, { fromLng: e.target.value })}
+                              placeholder="lng"
+                              inputMode="decimal"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>To (lat,lng)</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              value={leg.toLat}
+                              onChange={(e) => updateLeg(idx, { toLat: e.target.value })}
+                              placeholder="lat"
+                              inputMode="decimal"
+                            />
+                            <Input
+                              value={leg.toLng}
+                              onChange={(e) => updateLeg(idx, { toLng: e.target.value })}
+                              placeholder="lng"
+                              inputMode="decimal"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Note</Label>
+                        <Input
+                          value={leg.note}
+                          onChange={(e) => updateLeg(idx, { note: e.target.value })}
+                          placeholder="Gợi ý đổi phương tiện / điểm dừng..."
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Bản đồ lộ trình</Label>
+              <div className="h-[320px] w-full rounded-xl overflow-hidden border bg-gray-50">
+                <RouteMapLoader
+                  location={formData.location || 'Tour'}
+                  name={formData.name || 'Tour'}
+                  points={itineraryMapPoints}
+                  showPanel={false}
+                  disableGeolocation={true}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Khi bạn đổi thứ tự/chỉnh tọa độ các chặng, bản đồ sẽ tự cập nhật theo.
               </div>
             </div>
 

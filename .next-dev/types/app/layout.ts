@@ -1,4 +1,4 @@
-// File: /Users/thanhtri/Downloads/Eco-Tour-Wed/app/layout.tsx
+// File: D:\Eco-Tour\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

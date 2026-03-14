@@ -1,4 +1,4 @@
-// File: /Users/thanhtri/Downloads/Eco-Tour-Wed/app/(main)/(packages)/packages/page.tsx
+// File: D:\Eco-Tour\app\(main)\(packages)\packages\page.tsx
 import * as entry from '../../../../../../app/(main)/(packages)/packages/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
