@@ -3,3 +3,8 @@
 - Quản lý tour đã tạo: /management-portal/manage-packages
 - Tạo điểm đến: /management-portal/create-destinations
 - Quản lý điểm đến: /management-portal/manage-destinations
+- Chạy lại:
+- npx prisma generate ✅ 
+- npx prisma db push ✅ 
+- npm run lint ✅ 
+- npx prisma db push , npx prisma generate , npm run lint , npm run build đều OK.

@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign, Crown, Star, Share2, Heart, CheckCircle2, ShieldCheck, ChevronRight } from "lucide-react"
 import { motion } from 'framer-motion'
+import { computeDistanceKm, computeLegKgCo2e, normalizeMode, transportModeLabels } from '@/lib/emissions'
 
 interface PackageDestinationProps {
   package: {
@@ -19,12 +20,35 @@ interface PackageDestinationProps {
     price: number
     description: string
     included: { id: string; item: string }[]
+    itinerary?: Array<{
+      id: string
+      order: number
+      mode: string
+      fromName: string
+      toName: string
+      distanceKm: number | null
+      fromLat: number | null
+      fromLng: number | null
+      toLat: number | null
+      toLng: number | null
+      note: string | null
+    }>
   }
 }
 
 import { format } from "date-fns"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import Link from 'next/link'
 import Image from 'next/image'
@@ -46,7 +70,103 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
   const [showMapPanel, setShowMapPanel] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [isLiked, setIsLiked] = useState(false)
+  const [travelerCount, setTravelerCount] = useState(1)
+  const [showTripSummary, setShowTripSummary] = useState(false)
   const formRef = React.useRef<HTMLFormElement>(null)
+
+  const itinerarySummary = useMemo(() => {
+    const legs = (travelPackage.itinerary ?? []).slice().sort((a, b) => a.order - b.order)
+    const computed = legs.map((l) => {
+      const mode = normalizeMode(l.mode)
+      const distanceKm = computeDistanceKm({
+        distanceKm: l.distanceKm,
+        fromLat: l.fromLat,
+        fromLng: l.fromLng,
+        toLat: l.toLat,
+        toLng: l.toLng,
+      })
+      const kgCo2e = distanceKm != null ? computeLegKgCo2e({ mode, distanceKm, travelers: travelerCount }) : null
+      return { ...l, mode, distanceKm, kgCo2e }
+    })
+    const totalDistanceKm = computed.reduce((sum, l) => sum + (l.distanceKm ?? 0), 0)
+    const totalKgCo2e = computed.reduce((sum, l) => sum + (l.kgCo2e ?? 0), 0)
+    return { legs: computed, totalDistanceKm, totalKgCo2e }
+  }, [travelPackage.itinerary, travelerCount])
+
+  const mapPoints = useMemo(() => {
+    const pts: Array<{ lat: number; lng: number; label?: string }> = []
+    const pushIfValid = (lat: number | null, lng: number | null, label?: string) => {
+      if (typeof lat !== 'number' || typeof lng !== 'number') return
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+      const last = pts[pts.length - 1]
+      if (last && Math.abs(last.lat - lat) < 0.000001 && Math.abs(last.lng - lng) < 0.000001) return
+      pts.push({ lat, lng, label })
+    }
+    for (const leg of itinerarySummary.legs) {
+      pushIfValid(leg.fromLat ?? null, leg.fromLng ?? null, leg.fromName)
+      pushIfValid(leg.toLat ?? null, leg.toLng ?? null, leg.toName)
+    }
+    return pts.length >= 2 ? pts : undefined
+  }, [itinerarySummary.legs])
+
+  const emissionsByMode = useMemo(() => {
+    const byMode = new Map<string, { km: number; kg: number }>()
+    for (const leg of itinerarySummary.legs) {
+      const key = leg.mode
+      const current = byMode.get(key) ?? { km: 0, kg: 0 }
+      byMode.set(key, {
+        km: current.km + (leg.distanceKm ?? 0),
+        kg: current.kg + (leg.kgCo2e ?? 0),
+      })
+    }
+    return Array.from(byMode.entries()).sort((a, b) => b[1].kg - a[1].kg)
+  }, [itinerarySummary.legs])
+
+  const googleTripUrl = useMemo(() => {
+    if (itinerarySummary.legs.length === 0) return null
+    const originLeg = itinerarySummary.legs[0]
+    const destLeg = itinerarySummary.legs[itinerarySummary.legs.length - 1]
+
+    const enc = (v: string) => encodeURIComponent(v)
+    const coord = (lat?: number | null, lng?: number | null) =>
+      typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng) ? `${lat},${lng}` : null
+
+    const origin = coord(originLeg.fromLat, originLeg.fromLng) ?? originLeg.fromName
+    const destination = coord(destLeg.toLat, destLeg.toLng) ?? destLeg.toName
+    const waypoints = itinerarySummary.legs.slice(0, -1).map((l) => coord(l.toLat, l.toLng) ?? l.toName).filter(Boolean)
+
+    const base = `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(destination)}&travelmode=driving`
+    if (waypoints.length === 0) return base
+    return `${base}&waypoints=${enc(waypoints.join('|'))}`
+  }, [itinerarySummary.legs])
+
+  const getLegTravelMode = (mode: string) => {
+    if (mode === 'WALK') return 'walking'
+    if (mode === 'BIKE') return 'bicycling'
+    if (mode === 'BUS' || mode === 'TRAIN') return 'transit'
+    if (mode === 'PLANE' || mode === 'BOAT') return 'transit'
+    return 'driving'
+  }
+
+  const getLegGoogleUrl = (leg: (typeof itinerarySummary.legs)[number]) => {
+    const enc = (v: string) => encodeURIComponent(v)
+    const coord = (lat?: number | null, lng?: number | null) =>
+      typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng) ? `${lat},${lng}` : null
+
+    const origin = coord(leg.fromLat, leg.fromLng) ?? leg.fromName
+    const destination = coord(leg.toLat, leg.toLng) ?? leg.toName
+    const travelmode = getLegTravelMode(leg.mode)
+    return `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(destination)}&travelmode=${enc(travelmode)}`
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Đã copy link')
+    } catch {
+      toast.error('Không copy được link trên trình duyệt này')
+    }
+  }
 
   const validateForm = (formData: FormData): FormErrors => {
     const errors: FormErrors = {}
@@ -298,7 +418,28 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                   <p className="text-muted-foreground text-sm mt-2 italic">Bản đồ mô phỏng lộ trình di chuyển của bạn</p>
                 </div>
                 <div className="flex items-center gap-4">
-                   <Button 
+                  {googleTripUrl && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="rounded-full border-primary/20 text-primary hover:bg-primary hover:text-white px-6 h-10 text-xs font-bold transition-all"
+                    >
+                      <a href={googleTripUrl} target="_blank" rel="noreferrer">
+                        Google Maps
+                      </a>
+                    </Button>
+                  )}
+                  {googleTripUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-full border-primary/20 text-primary hover:bg-primary hover:text-white px-6 h-10 text-xs font-bold transition-all"
+                      onClick={() => copyToClipboard(googleTripUrl)}
+                    >
+                      Copy link
+                    </Button>
+                  )}
+                  <Button 
                     onClick={() => setShowMapPanel(!showMapPanel)}
                     variant="outline"
                     className={`rounded-full border-primary/20 text-primary hover:bg-primary hover:text-white px-6 h-10 text-xs font-bold transition-all ${showMapPanel ? 'bg-primary text-white' : ''}`}
@@ -317,6 +458,7 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                   location={travelPackage.location} 
                   name={travelPackage.name} 
                   showPanel={showMapPanel}
+                  points={mapPoints}
                 />
                 <div className="absolute top-4 right-4 z-20 glass-morphism px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
                   <MapPin size={16} className="text-primary" />
@@ -330,8 +472,126 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                   </div>
                 )}
               </div>
+
+              <div className="mt-8 rounded-[2.5rem] border border-primary/10 bg-primary/5 p-6 md:p-8">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Eco Impact</div>
+                    <div className="text-xl font-black text-primary">Ước tính khí thải cho lộ trình</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm font-bold text-gray-600">
+                      Số khách: <span className="text-primary">{travelerCount}</span>
+                    </div>
+                    <Button type="button" variant="outline" className="rounded-full" onClick={() => setShowTripSummary(true)}>
+                      Kết thúc chuyến đi
+                    </Button>
+                  </div>
+                </div>
+
+                {itinerarySummary.legs.length === 0 ? (
+                  <div className="text-sm text-muted-foreground italic">
+                    Tour này chưa có lộ trình chi tiết để tính CO2e. Admin có thể thêm các chặng (legs) trong trang quản trị.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {itinerarySummary.legs.map((leg) => (
+                      <div key={leg.id} className="bg-white rounded-2xl p-4 border border-white/70 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="font-black text-sm text-primary">
+                            {transportModeLabels[leg.mode]} • {leg.fromName} → {leg.toName}
+                          </div>
+                          <div className="text-xs font-bold text-gray-500">
+                            {leg.distanceKm != null ? `${leg.distanceKm.toFixed(1)} km` : 'Chưa có quãng đường'} •{' '}
+                            {leg.kgCo2e != null ? `${leg.kgCo2e.toFixed(2)} kg CO2e` : 'Chưa tính được CO2e'}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          <a
+                            className="text-xs font-bold text-primary underline underline-offset-4"
+                            href={getLegGoogleUrl(leg)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Xem chặng này trên Google Maps
+                          </a>
+                          <button
+                            type="button"
+                            className="text-xs font-bold text-gray-600 underline underline-offset-4"
+                            onClick={() => copyToClipboard(getLegGoogleUrl(leg))}
+                          >
+                            Copy link chặng
+                          </button>
+                        </div>
+                        {leg.note && <div className="mt-2 text-xs text-gray-500 italic">{leg.note}</div>}
+                      </div>
+                    ))}
+
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-white p-4 border border-white/70">
+                        <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Total Distance</div>
+                        <div className="text-2xl font-black text-primary">{itinerarySummary.totalDistanceKm.toFixed(1)} km</div>
+                      </div>
+                      <div className="rounded-2xl bg-white p-4 border border-white/70">
+                        <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Total Emissions</div>
+                        <div className="text-2xl font-black text-primary">{itinerarySummary.totalKgCo2e.toFixed(2)} kg CO2e</div>
+                        <div className="text-[10px] text-gray-500 mt-1">Tính theo số khách hiện tại</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
+
+          <AlertDialog open={showTripSummary} onOpenChange={setShowTripSummary}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tổng kết chuyến đi</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tổng kết CO2e dựa trên lộ trình và số khách hiện tại.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              {itinerarySummary.legs.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Chưa có lộ trình chi tiết để tổng kết.</div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-xl border p-3">
+                      <div className="text-xs text-muted-foreground">Số khách</div>
+                      <div className="text-lg font-semibold">{travelerCount}</div>
+                    </div>
+                    <div className="rounded-xl border p-3">
+                      <div className="text-xs text-muted-foreground">Tổng quãng đường</div>
+                      <div className="text-lg font-semibold">{itinerarySummary.totalDistanceKm.toFixed(1)} km</div>
+                    </div>
+                    <div className="rounded-xl border p-3">
+                      <div className="text-xs text-muted-foreground">Tổng CO2e</div>
+                      <div className="text-lg font-semibold">{itinerarySummary.totalKgCo2e.toFixed(2)} kg</div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border p-3">
+                    <div className="text-sm font-semibold mb-2">Theo phương tiện</div>
+                    <div className="space-y-2">
+                      {emissionsByMode.map(([mode, v]) => (
+                        <div key={mode} className="flex items-center justify-between text-sm">
+                          <div className="font-medium">{transportModeLabels[mode as keyof typeof transportModeLabels] ?? mode}</div>
+                          <div className="text-muted-foreground">{v.km.toFixed(1)} km • {v.kg.toFixed(2)} kg CO2e</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>Đóng</AlertDialogCancel>
+                <AlertDialogAction onClick={() => setShowTripSummary(false)}>Xong</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Booking Sidebar */}
           <div className="lg:col-span-4">
@@ -432,7 +692,12 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                         min="1" 
                         max="50"
                         placeholder="2" 
+                        defaultValue={travelerCount}
                         className={`rounded-2xl h-14 bg-gray-50 border-none focus:ring-2 focus:ring-secondary ${errors.numberOfGuests ? 'ring-2 ring-red-500' : ''}`}
+                        onChange={(e) => {
+                          const n = Number(e.target.value)
+                          setTravelerCount(Number.isFinite(n) && n > 0 ? Math.floor(n) : 1)
+                        }}
                         required 
                       />
                     </div>

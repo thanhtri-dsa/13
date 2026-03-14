@@ -3,10 +3,25 @@
 import dynamic from 'next/dynamic'
 import React, { useMemo, useState, useEffect } from 'react'
 
-const RouteMapLoader = ({ location, showPanel = false }: { location: string, name: string, showPanel?: boolean }) => {
+type RoutePoint = { lat: number; lng: number; label?: string }
+
+const RouteMapLoader = ({
+  location,
+  showPanel = false,
+  points,
+  disableGeolocation = false,
+}: {
+  location: string
+  name: string
+  showPanel?: boolean
+  points?: RoutePoint[]
+  disableGeolocation?: boolean
+}) => {
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
 
   useEffect(() => {
+    if (disableGeolocation) return
+    if (Array.isArray(points) && points.length >= 2) return
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -20,7 +35,7 @@ const RouteMapLoader = ({ location, showPanel = false }: { location: string, nam
         }
       );
     }
-  }, []);
+  }, [disableGeolocation, points]);
 
   const RouteMap = useMemo(() => dynamic(
     () => import('@/components/ui/RouteMap'),
@@ -33,6 +48,8 @@ const RouteMapLoader = ({ location, showPanel = false }: { location: string, nam
       ssr: false
     }
   ), [])
+
+  const hasPoints = Array.isArray(points) && points.length >= 2
 
   // Use user location as start if available, otherwise default to a point near destination
   let startPoint = { lat: -1.2921, lng: 36.8219, label: 'Nairobi' }
@@ -58,14 +75,15 @@ const RouteMapLoader = ({ location, showPanel = false }: { location: string, nam
   // Support for Saigon tour
   else if (location.toLowerCase().includes('hồ chí minh')) destPoint = { lat: 10.7719, lng: 106.6983, label: 'Bến Thành, TP.HCM' }
   
-  const routePoints = [startPoint, destPoint]
+  const routePoints = hasPoints ? (points as RoutePoint[]) : [startPoint, destPoint]
+  const pointsKey = hasPoints ? routePoints.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|') : ''
 
   return (
     <div className="w-full h-full relative">
       <RouteMap 
-        key={`${location}-${userLocation ? 'with-loc' : 'no-loc'}`} 
+        key={`${location}-${hasPoints ? pointsKey : userLocation ? 'with-loc' : 'no-loc'}`} 
         points={routePoints} 
-        zoom={userLocation ? 12 : 7} 
+        zoom={hasPoints ? 12 : userLocation ? 12 : 7} 
         showPanel={showPanel} 
       />
     </div>

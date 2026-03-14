@@ -8,6 +8,9 @@ export async function getPackageById(id: string) {
       where: { id },
       include: {
         included: true, // Include the related items
+        itinerary: {
+          orderBy: { order: 'asc' },
+        },
       }
     })
     

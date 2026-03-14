@@ -79,6 +79,7 @@ model Package {
   authorName  String
   included    Included[]
   bookings    PackageBooking[]
+  itinerary   PackageItineraryLeg[]
 }
 
 model Included {
@@ -86,6 +87,25 @@ model Included {
   item      String
   packageId String
   package   Package @relation(fields: [packageId], references: [id])
+}
+
+model PackageItineraryLeg {
+  id          String   @id @default(cuid())
+  packageId   String
+  order       Int
+  mode        String
+  fromName    String
+  toName      String
+  distanceKm  Float?
+  fromLat     Float?
+  fromLng     Float?
+  toLat       Float?
+  toLng       Float?
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
 }
 
 model KeepAlive {

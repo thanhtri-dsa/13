@@ -1,4 +1,4 @@
-// File: /Users/thanhtri/Downloads/Eco-Tour-Wed/app/api/packages/route.ts
+// File: D:\Eco-Tour\app\api\packages\route.ts
 import * as entry from '../../../../../app/api/packages/route.js'
 import type { NextRequest } from 'next/server.js'
 

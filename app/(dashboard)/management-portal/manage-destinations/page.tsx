@@ -133,7 +133,7 @@ export default function DestinationManagement() {
     <Card className="w-full max-w-5xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Manage Destinations</CardTitle>
-        <Button onClick={() => router.push('/management-portal/create-destination')}>
+        <Button onClick={() => router.push('/management-portal/create-destinations')}>
           Create New Destination
         </Button>
       </CardHeader>
