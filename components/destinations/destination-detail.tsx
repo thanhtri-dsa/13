@@ -157,10 +157,10 @@ export default function DestinationDetail({ destination }: DestinationDetailProp
             </Link>
             
             <div className="flex flex-wrap items-center gap-4 mb-6">
-              <span className="bg-secondary text-primary px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
+              <span className="bg-secondary text-secondary-foreground px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
                 <Crown size={12} /> Khám phá VIP
               </span>
-              <div className="flex items-center gap-1 text-yellow-400">
+              <div className="flex items-center gap-1 text-secondary">
                 {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={14} fill="currentColor" />)}
               </div>
             </div>
@@ -204,7 +204,7 @@ export default function DestinationDetail({ destination }: DestinationDetailProp
               {[
                 { icon: Clock, label: "Thời lượng", value: `${destination.daysNights} ${destination.tourType}`, color: "text-blue-500", bg: "bg-blue-50" },
                 { icon: Users, label: "Số lượng", value: "Tùy chọn", color: "text-green-500", bg: "bg-green-50" },
-                { icon: DollarSign, label: "Giá từ", value: `${destination.amount.toLocaleString()} VNĐ`, color: "text-yellow-600", bg: "bg-yellow-50" },
+                { icon: DollarSign, label: "Giá từ", value: `${destination.amount.toLocaleString()} VNĐ`, color: "text-secondary", bg: "bg-secondary/10" },
                 { icon: ShieldCheck, label: "Bảo hiểm", value: "Gói Cao Cấp", color: "text-purple-500", bg: "bg-purple-50" },
               ].map((item, i) => (
                 <div key={i} className={`${item.bg} p-6 rounded-[2rem] border border-white shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all duration-500`}>
