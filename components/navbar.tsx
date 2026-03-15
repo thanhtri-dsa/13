@@ -90,7 +90,7 @@ const Navbar = () => {
               </div>
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className={`flex items-center gap-2 cursor-pointer bg-gradient-to-r from-cyan-400 via-cyan-200 to-cyan-500 text-primary rounded-full font-black shadow-[0_0_15px_rgba(34,211,238,0.3)] ${isScrolled ? 'px-2 py-0.5 text-[8px]' : 'px-3 py-1 text-[9px]'}`}
+                className={`flex items-center gap-2 cursor-pointer bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-500 text-primary rounded-full font-black shadow-[0_0_15px_rgba(255,184,0,0.3)] ${isScrolled ? 'px-2 py-0.5 text-[8px]' : 'px-3 py-1 text-[9px]'}`}
               >
                 <Crown size={isScrolled ? 8 : 10} />
                 <span>THÀNH VIÊN VIP</span>
@@ -113,7 +113,7 @@ const Navbar = () => {
                 <div className="absolute inset-0 bg-secondary/20 blur-3xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl md:text-3xl font-black text-white font-serif tracking-tighter leading-none group-hover:text-secondary transition-colors">
+                <span className="text-2xl md:text-3xl font-black text-secondary font-serif tracking-tighter leading-none">
                   ECO-TOUR
                 </span>
                 <div className="flex items-center gap-2 mt-1.5">

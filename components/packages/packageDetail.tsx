@@ -505,27 +505,27 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                     emoji: "🌿",
                     title: "Di chuyển xanh", 
                     desc: "Toàn bộ bằng VinBus, xe đạp điện và đường thủy.",
-                    color: "text-green-600",
-                    bg: "bg-green-50",
-                    border: "border-green-100"
+                    color: "text-amber-600",
+                    bg: "bg-amber-50",
+                    border: "border-amber-100"
                   },
                   { 
                     icon: <Compass className="w-6 h-6" />, 
                     emoji: "🗺️",
                     title: "Hành trình cá nhân", 
                     desc: "Tùy chỉnh điểm dừng theo sở thích thực tế.",
-                    color: "text-blue-600",
-                    bg: "bg-blue-50",
-                    border: "border-blue-100"
+                    color: "text-yellow-600",
+                    bg: "bg-yellow-50",
+                    border: "border-yellow-100"
                   },
                   { 
                     icon: <Utensils className="w-6 h-6" />, 
                     emoji: "🍽️",
                     title: "Eco-Treat", 
                     desc: "Voucher trải nghiệm ẩm thực thực vật tại các quán đối tác.",
-                    color: "text-emerald-600",
-                    bg: "bg-emerald-50",
-                    border: "border-emerald-100"
+                    color: "text-orange-600",
+                    bg: "bg-orange-50",
+                    border: "border-orange-100"
                   },
                   { 
                     icon: <Award className="w-6 h-6" />, 

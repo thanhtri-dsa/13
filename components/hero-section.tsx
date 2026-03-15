@@ -157,7 +157,7 @@ export default function HeroCarousel() {
           >
             <Link
               href={currentItem.link}
-              className="group relative inline-flex items-center px-10 py-4 bg-secondary text-secondary-foreground font-black rounded-full overflow-hidden transition-all duration-500 hover:scale-110 active:scale-95 shadow-[0_0_40px_rgba(13,148,136,0.3)] hover:shadow-[0_0_60px_rgba(13,148,136,0.5)]"
+              className="group relative inline-flex items-center px-10 py-4 bg-secondary text-secondary-foreground font-black rounded-full overflow-hidden transition-all duration-500 hover:scale-110 active:scale-95 shadow-[0_0_40px_rgba(255,184,0,0.3)] hover:shadow-[0_0_60px_rgba(255,184,0,0.5)]"
             >
               <span className="relative z-10 flex items-center">
                 KHÁM PHÁ NGAY
