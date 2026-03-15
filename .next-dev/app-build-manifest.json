@@ -1,14 +1,14 @@
 {
   "pages": {
-    "/(dashboard)/management-portal/create-packages/page": [
+    "/(main)/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/management-portal/create-packages/page.js"
+      "static/chunks/app/(main)/page.js"
     ],
-    "/(dashboard)/management-portal/layout": [
+    "/(main)/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/management-portal/layout.js"
+      "static/chunks/app/(main)/layout.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -21,50 +21,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
-    "/_not-found/page": [
+    "/(main)/blogs/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
-    ],
-    "/(dashboard)/management-portal/manage-packages/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/management-portal/manage-packages/page.js"
+      "static/chunks/app/(main)/blogs/page.js"
     ],
     "/(main)/(packages)/packages/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(main)/(packages)/packages/page.js"
     ],
-    "/(main)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/layout.js"
-    ],
     "/(main)/(packages)/packages/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(main)/(packages)/packages/[id]/page.js"
     ],
-    "/(dashboard)/management-portal/manage-packages/[id]/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/management-portal/manage-packages/[id]/page.js"
-    ],
-    "/(main)/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/page.js"
-    ],
-    "/(main)/about/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/about/page.js"
-    ],
-    "/(main)/blogs/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(main)/blogs/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

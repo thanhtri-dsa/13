@@ -121,7 +121,7 @@ export const DestinationDetail: React.FC<DestinationDetailProps> = ({ destinatio
                 </div>
               </div>
               <div className="flex items-center">
-                <BarChart2 className="h-6 w-6 mr-2 text-yellow-500" />
+                <BarChart2 className="h-6 w-6 mr-2 text-secondary" />
                 <div>
                   <p className="text-sm text-gray-500">Difficulty</p>
                   <p className="font-semibold">{destination.difficulty}</p>

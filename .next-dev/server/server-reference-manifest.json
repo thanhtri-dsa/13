@@ -2,29 +2,21 @@
   "node": {
     "0cc285930b6575bd5326eb64425b14a2895deeb9": {
       "workers": {
-        "app/(dashboard)/management-portal/create-packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
-        "app/_not-found/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
-        "app/(dashboard)/management-portal/manage-packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
+        "app/(main)/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
+        "app/(main)/blogs/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
         "app/(main)/(packages)/packages/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
         "app/(main)/(packages)/packages/[id]/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
-        "app/(dashboard)/management-portal/manage-packages/[id]/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
-        "app/(main)/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
-        "app/(main)/about/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!",
-        "app/(main)/blogs/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!"
+        "app/_not-found/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CEco-Tour%5C%5Cnode_modules%5C%5C%40clerk%5C%5Cnextjs%5C%5Cdist%5C%5Cesm%5C%5Capp-router%5C%5Cserver-actions.js%22%2C%5B%22invalidateCacheAction%22%5D%5D%5D&__client_imported__=true!"
       },
       "layer": {
-        "app/(dashboard)/management-portal/create-packages/page": "action-browser",
-        "app/_not-found/page": "action-browser",
-        "app/(dashboard)/management-portal/manage-packages/page": "action-browser",
+        "app/(main)/page": "action-browser",
+        "app/(main)/blogs/page": "action-browser",
         "app/(main)/(packages)/packages/page": "action-browser",
         "app/(main)/(packages)/packages/[id]/page": "action-browser",
-        "app/(dashboard)/management-portal/manage-packages/[id]/page": "action-browser",
-        "app/(main)/page": "action-browser",
-        "app/(main)/about/page": "action-browser",
-        "app/(main)/blogs/page": "action-browser"
+        "app/_not-found/page": "action-browser"
       }
     }
   },
   "edge": {},
-  "encryptionKey": "hQs8+i0gr5HETNUK4t+mXdq2gfyW1McEG9flgmSoVXw="
+  "encryptionKey": "kBegUExokL/Z+28eu+CJyE6xSa/Lb0MISaMj59ADiOA="
 }

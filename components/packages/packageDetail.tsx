@@ -5,9 +5,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign, Crown, Star, Share2, Heart, CheckCircle2, ShieldCheck, ChevronRight } from "lucide-react"
-import { motion } from 'framer-motion'
-import { computeDistanceKm, computeLegKgCo2e, normalizeMode, transportModeLabels } from '@/lib/emissions'
+import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign, Crown, Star, Share2, Heart, CheckCircle2, ShieldCheck, ChevronRight, Leaf, Compass, Utensils, Award, Navigation, Play, Square, RefreshCcw, TreeDeciduous, Package as PackageIcon, Info } from "lucide-react"
+import { motion, AnimatePresence } from 'framer-motion'
+import { computeDistanceKm, computeLegKgCo2e, normalizeMode, transportModeLabels, haversineDistanceKm, TransportMode } from '@/lib/emissions'
+import { format } from "date-fns"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+import Link from 'next/link'
+import Image from 'next/image'
+import RouteMapLoader from '@/components/ui/RouteMapLoader'
+import { vi } from "date-fns/locale"
 
 interface PackageDestinationProps {
   package: {
@@ -36,25 +54,6 @@ interface PackageDestinationProps {
   }
 }
 
-import { format } from "date-fns"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
-import Link from 'next/link'
-import Image from 'next/image'
-import RouteMapLoader from '@/components/ui/RouteMapLoader'
-import { vi } from "date-fns/locale"
-
 interface FormErrors {
   firstname?: string
   lastname?: string
@@ -74,10 +73,88 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
   const [showTripSummary, setShowTripSummary] = useState(false)
   const formRef = React.useRef<HTMLFormElement>(null)
 
+  // Local state for itinerary leg modes (to allow real-time changes)
+  const [itineraryModes, setItineraryModes] = useState<Record<string, TransportMode>>({})
+
+  // Initialize itinerary modes
+  React.useEffect(() => {
+    if (travelPackage.itinerary) {
+      const modes: Record<string, TransportMode> = {}
+      travelPackage.itinerary.forEach(leg => {
+        modes[leg.id] = normalizeMode(leg.mode)
+      })
+      setItineraryModes(modes)
+    }
+  }, [travelPackage.itinerary])
+
+  // Live Tracking States
+  const [isTracking, setIsTracking] = useState(false)
+  const [trackedDistance, setTrackedDistance] = useState(0)
+  const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [trackingMode, setTrackingMode] = useState<TransportMode>('BUS')
+
+  // Live Tracking Effect
+  React.useEffect(() => {
+    let watchId: number | null = null;
+    if (isTracking && "geolocation" in navigator) {
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          const newCoords = { lat, lng };
+
+          if (lastCoords) {
+            const distance = haversineDistanceKm(lastCoords, newCoords);
+            // Only add distance if it's more than 5 meters to avoid GPS noise
+            if (distance > 0.005) {
+              setTrackedDistance(prev => prev + distance);
+              setLastCoords(newCoords);
+            }
+          } else {
+            setLastCoords(newCoords);
+          }
+        },
+        (error) => {
+          console.error("Tracking error:", error);
+          let errorMsg = "Lỗi định vị: Không thể theo dõi vị trí của bạn.";
+          
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMsg = "Bạn đã chặn quyền truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt để sử dụng tính năng này.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = "Không tìm thấy tín hiệu vị trí. Vui lòng kiểm tra GPS hoặc kết nối mạng của bạn.";
+              break;
+            case error.TIMEOUT:
+              errorMsg = "Hết thời gian chờ lấy vị trí. Vui lòng thử lại.";
+              break;
+          }
+          
+          toast.error(errorMsg, {
+            duration: 6000,
+            action: {
+              label: "Hướng dẫn",
+              onClick: () => window.open("https://support.google.com/chrome/answer/142065", "_blank")
+            }
+          });
+          setIsTracking(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    return () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isTracking, lastCoords]);
+
+  const trackedEmissions = useMemo(() => {
+    return computeLegKgCo2e({ mode: trackingMode, distanceKm: trackedDistance, travelers: travelerCount });
+  }, [trackingMode, trackedDistance, travelerCount]);
+
   const itinerarySummary = useMemo(() => {
     const legs = (travelPackage.itinerary ?? []).slice().sort((a, b) => a.order - b.order)
     const computed = legs.map((l) => {
-      const mode = normalizeMode(l.mode)
+      const mode = itineraryModes[l.id] || normalizeMode(l.mode)
       const distanceKm = computeDistanceKm({
         distanceKm: l.distanceKm,
         fromLat: l.fromLat,
@@ -86,12 +163,18 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
         toLng: l.toLng,
       })
       const kgCo2e = distanceKm != null ? computeLegKgCo2e({ mode, distanceKm, travelers: travelerCount }) : null
-      return { ...l, mode, distanceKm, kgCo2e }
+      
+      // Calculate potential savings (compared to average CAR emission)
+      const carKgCo2e = distanceKm != null ? computeLegKgCo2e({ mode: 'CAR', distanceKm, travelers: travelerCount }) : 0
+      const savings = Math.max(0, carKgCo2e - (kgCo2e || 0))
+      
+      return { ...l, mode, distanceKm, kgCo2e, savings }
     })
     const totalDistanceKm = computed.reduce((sum, l) => sum + (l.distanceKm ?? 0), 0)
     const totalKgCo2e = computed.reduce((sum, l) => sum + (l.kgCo2e ?? 0), 0)
-    return { legs: computed, totalDistanceKm, totalKgCo2e }
-  }, [travelPackage.itinerary, travelerCount])
+    const totalSavings = computed.reduce((sum, l) => sum + (l.savings ?? 0), 0)
+    return { legs: computed, totalDistanceKm, totalKgCo2e, totalSavings }
+  }, [travelPackage.itinerary, travelerCount, itineraryModes])
 
   const mapPoints = useMemo(() => {
     const pts: Array<{ lat: number; lng: number; label?: string }> = []
@@ -285,7 +368,7 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       {/* Hero Section Upgrade */}
-      <section className="relative h-[70vh] w-full overflow-hidden">
+      <section className="relative h-[60vh] md:h-[70vh] w-full overflow-hidden">
         <motion.div 
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
@@ -302,30 +385,38 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#f8fafc]" />
         </motion.div>
 
-        <div className="container mx-auto px-4 h-full relative z-10 flex flex-col justify-end pb-20">
+        <div className="container mx-auto px-4 h-full relative z-10 flex flex-col justify-end pb-12 md:pb-20">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
             <Link href="/packages">
-              <Button variant="ghost" className="text-white hover:bg-white/20 mb-8 backdrop-blur-md border border-white/30 rounded-full px-6">
+              <Button variant="ghost" className="text-white hover:bg-white/20 mb-6 md:mb-8 backdrop-blur-md border border-white/30 rounded-full px-4 md:px-6 h-10 md:h-11">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại danh sách
               </Button>
             </Link>
             
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <span className="bg-secondary text-primary px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
+            <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-4 md:mb-6">
+              <span className="bg-secondary text-secondary-foreground px-3 md:px-4 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
                 <Crown size={12} /> Gói Tour VIP
               </span>
-              <div className="flex items-center gap-1 text-yellow-400">
+              {itinerarySummary.totalSavings > 0 && (
+                <span className="bg-primary text-primary-foreground px-3 md:px-4 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl animate-pulse">
+                  <Leaf size={12} /> Giảm {itinerarySummary.totalSavings.toFixed(1)}kg CO2
+                </span>
+              )}
+              <div className="flex items-center gap-1 text-secondary">
                 {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={14} fill="currentColor" />)}
               </div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-serif font-black text-white mb-6 leading-tight drop-shadow-2xl">
+            <h1 className="text-4xl md:text-7xl font-serif font-black text-white mb-4 md:mb-6 leading-tight drop-shadow-2xl">
               {travelPackage.name}
             </h1>
+            <p className="text-lg md:text-2xl text-white/90 font-medium italic mb-6 md:mb-8 max-w-2xl drop-shadow-lg">
+              &quot;Du hành xanh, Dấu chân sạch&quot;
+            </p>
             
             <div className="flex flex-wrap items-center gap-8 text-white/90">
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20">
@@ -362,15 +453,15 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
               {[
                 { icon: Clock, label: "Thời lượng", value: travelPackage.duration, color: "text-blue-500", bg: "bg-blue-50" },
                 { icon: Users, label: "Số lượng", value: travelPackage.groupSize, color: "text-green-500", bg: "bg-green-50" },
-                { icon: DollarSign, label: "Giá gói", value: `${travelPackage.price.toLocaleString()} VNĐ`, color: "text-yellow-600", bg: "bg-yellow-50" },
+                { icon: DollarSign, label: "Giá gói", value: `${travelPackage.price.toLocaleString()} VNĐ`, color: "text-secondary", bg: "bg-secondary/10" },
                 { icon: ShieldCheck, label: "Bảo hiểm", value: "Gói Cao Cấp", color: "text-purple-500", bg: "bg-purple-50" },
               ].map((item, i) => (
-                <div key={i} className={`${item.bg} p-6 rounded-[2rem] border border-white shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all duration-500`}>
-                  <div className={`${item.color} mb-4 p-3 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform`}>
-                    <item.icon size={24} />
+                <div key={i} className={`${item.bg} p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border border-white shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all duration-500`}>
+                  <div className={`${item.color} mb-3 md:mb-4 p-2 md:p-3 bg-white rounded-xl md:rounded-2xl shadow-sm group-hover:scale-110 transition-transform`}>
+                    <item.icon size={20} className="md:w-6 md:h-6" />
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{item.label}</p>
-                  <p className="font-bold text-gray-900">{item.value}</p>
+                  <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{item.label}</p>
+                  <p className="font-bold text-xs md:text-base text-gray-900">{item.value}</p>
                 </div>
               ))}
             </motion.div>
@@ -380,26 +471,99 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              className="bg-white p-10 md:p-14 rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden"
+              className="bg-white p-6 md:p-14 rounded-[2rem] md:rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 opacity-[0.03] vn-pattern w-64 h-64 rotate-12" />
-              <h2 className="text-3xl font-serif font-black mb-8 flex items-center gap-4 text-primary">
-                <div className="h-8 w-1.5 bg-secondary rounded-full" />
+              <h2 className="text-2xl md:text-3xl font-serif font-black mb-6 md:mb-8 flex items-center gap-3 md:gap-4 text-primary">
+                <div className="h-6 md:h-8 w-1.5 bg-secondary rounded-full" />
                 Về gói hành trình
               </h2>
-              <div className="prose prose-lg max-w-none text-gray-600 leading-relaxed italic mb-10">
+              <div className="mb-6 md:mb-8">
+                <p className="text-lg md:text-2xl font-serif font-bold text-gray-800 mb-2 italic">
+                  &quot;Sài Gòn năng động qua góc nhìn bền vững&quot;
+                </p>
+                <div className="h-1 w-16 md:w-20 bg-secondary rounded-full" />
+              </div>
+              <div className="prose prose-sm md:prose-lg max-w-none text-gray-600 leading-relaxed italic mb-8 md:mb-10">
                 &quot;{travelPackage.description}&quot;
               </div>
 
-              <h3 className="text-xl font-black mb-6 uppercase tracking-wider text-gray-400">Trải nghiệm bao gồm:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {travelPackage.included.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl group hover:bg-primary hover:text-white transition-all duration-300">
-                    <CheckCircle2 className="text-secondary h-5 w-5 shrink-0 group-hover:text-white" />
-                    <span className="font-bold text-sm">{item.item}</span>
-                  </div>
-                ))}
+              <h3 className="text-lg md:text-xl font-black mb-6 md:mb-8 uppercase tracking-wider text-gray-400">Trải nghiệm Eco-Tour đặc sắc:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                {[
+                  { 
+                    icon: <Leaf className="w-6 h-6" />, 
+                    emoji: "🌿",
+                    title: "Di chuyển xanh", 
+                    desc: "Toàn bộ bằng VinBus, xe đạp điện và đường thủy.",
+                    color: "text-green-600",
+                    bg: "bg-green-50",
+                    border: "border-green-100"
+                  },
+                  { 
+                    icon: <Compass className="w-6 h-6" />, 
+                    emoji: "🗺️",
+                    title: "Hành trình cá nhân", 
+                    desc: "Tùy chỉnh điểm dừng theo sở thích thực tế.",
+                    color: "text-blue-600",
+                    bg: "bg-blue-50",
+                    border: "border-blue-100"
+                  },
+                  { 
+                    icon: <Utensils className="w-6 h-6" />, 
+                    emoji: "🍽️",
+                    title: "Eco-Treat", 
+                    desc: "Voucher trải nghiệm ẩm thực thực vật tại các quán đối tác.",
+                    color: "text-emerald-600",
+                    bg: "bg-emerald-50",
+                    border: "border-emerald-100"
+                  },
+                  { 
+                    icon: <Award className="w-6 h-6" />, 
+                    emoji: "🏅",
+                    title: "Chứng nhận Net-Zero", 
+                    desc: "Nhận chứng chỉ giảm thải số (E-Certificate) sau chuyến đi.",
+                    color: "text-secondary",
+                    bg: "bg-secondary/10",
+                    border: "border-secondary/20"
+                  }
+                ].map((item, index) => (
+                    <motion.div 
+                      key={index}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      className={`${item.bg} ${item.border} border p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col gap-4 md:gap-5 transition-all duration-300 hover:shadow-xl relative overflow-hidden group`}
+                    >
+                      <div className="absolute top-4 right-6 text-2xl md:text-4xl opacity-20 group-hover:scale-110 transition-transform duration-500 grayscale group-hover:grayscale-0">
+                        {item.emoji}
+                      </div>
+                      <div className={`${item.color} p-3 md:p-4 bg-white rounded-xl md:rounded-2xl w-fit shadow-sm group-hover:rotate-12 transition-transform`}>
+                        <div className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center">
+                          {item.icon}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-black text-lg md:text-xl text-gray-900 mb-1 md:mb-2">{item.title}</h4>
+                        <p className="text-xs md:text-sm text-gray-600 font-medium leading-relaxed italic">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
               </div>
+
+              {travelPackage.included.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-gray-100">
+                  <h3 className="text-xs font-black mb-6 uppercase tracking-[0.2em] text-gray-400">Tiện ích đi kèm khác:</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {travelPackage.included.map((item, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
+                        <CheckCircle2 className="text-secondary h-3 w-3 shrink-0" />
+                        <span className="font-bold text-[10px] uppercase tracking-wider text-gray-500">{item.item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
 
             {/* Tour Map Section */}
@@ -474,10 +638,137 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
               </div>
 
               <div className="mt-8 rounded-[2.5rem] border border-primary/10 bg-primary/5 p-6 md:p-8">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Live Tracker</div>
+                    <div className="text-xl font-black text-primary">Theo dõi hành trình thực tế</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {!isTracking ? (
+                      <Button 
+                        onClick={() => {
+                          if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+                            toast.error("Trình duyệt yêu cầu kết nối HTTPS để sử dụng định vị GPS.");
+                            return;
+                          }
+                          setIsTracking(true);
+                          setLastCoords(null); // Reset starting point for new tracking session
+                        }} 
+                        className="rounded-full bg-green-600 hover:bg-green-700 text-white font-bold flex items-center gap-2"
+                      >
+                        <Play size={16} /> Bắt đầu theo dõi
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => setIsTracking(false)} 
+                        variant="destructive"
+                        className="rounded-full font-bold flex items-center gap-2"
+                      >
+                        <Square size={16} /> Dừng theo dõi
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setTrackedDistance(0);
+                        setLastCoords(null);
+                      }}
+                      className="rounded-full border-primary/20 text-primary hover:bg-primary hover:text-white"
+                      title="Reset quãng đường"
+                    >
+                      <RefreshCcw size={16} />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="rounded-2xl bg-white p-5 border border-white/70 shadow-sm">
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Quãng đường</div>
+                    <div className="text-2xl font-black text-primary flex items-baseline gap-1">
+                      {trackedDistance.toFixed(2)} <span className="text-xs">km</span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-5 border border-white/70 shadow-sm">
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Khí thải thực tế</div>
+                    <div className="text-2xl font-black text-secondary flex items-baseline gap-1">
+                      {trackedEmissions.toFixed(2)} <span className="text-xs">kg CO2e</span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-5 border border-white/70 shadow-sm">
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">Phương tiện</div>
+                    <select 
+                      value={trackingMode}
+                      onChange={(e) => setTrackingMode(e.target.value as TransportMode)}
+                      className="text-sm font-bold text-primary bg-transparent focus:outline-none w-full"
+                    >
+                      {Object.entries(transportModeLabels).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {isTracking && (
+                  <motion.div 
+                    animate={{ opacity: [0.4, 1, 0.4] }} 
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="flex items-center gap-2 text-green-600 text-[10px] font-black uppercase tracking-widest mb-6"
+                  >
+                    <span className="w-2 h-2 bg-green-600 rounded-full" />
+                    Đang theo dõi vị trí trực tiếp...
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  <div className="rounded-2xl bg-white p-6 border border-primary/10 flex items-center gap-4">
+                    <div className="p-3 bg-green-100 rounded-2xl text-green-600">
+                      <TreeDeciduous size={24} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 uppercase">Tương đương</div>
+                      <div className="text-lg font-black text-gray-900">Trồng {Math.ceil(itinerarySummary.totalSavings / 0.5)} cây xanh</div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-6 border border-primary/10 flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 rounded-2xl text-blue-600">
+                      <PackageIcon size={24} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 uppercase">Tránh sử dụng</div>
+                      <div className="text-lg font-black text-gray-900">{Math.ceil(itinerarySummary.totalSavings * 40)} túi nilon</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-secondary to-secondary/80 rounded-[2rem] p-6 text-white mb-8">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                        <Star size={24} fill="currentColor" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-lg">Green Points</h4>
+                        <p className="text-xs text-white/80">Bạn nhận được {Math.floor(itinerarySummary.totalSavings * 10)} điểm cho tour này</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-full border-white/40 text-white bg-transparent hover:bg-white hover:text-secondary">
+                      Đổi quà ngay
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {['#NetZeroTravel', '#SustainableLiving', '#PersonalizedExperience', '#GreenCredit'].map(tag => (
+                    <span key={tag} className="text-[10px] font-black text-gray-400 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-widest">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6 pt-6 border-t border-primary/10">
                   <div>
                     <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Eco Impact</div>
-                    <div className="text-xl font-black text-primary">Ước tính khí thải cho lộ trình</div>
+                    <div className="text-xl font-black text-primary">Ước tính khí thải cho lộ trình dự kiến</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-sm font-bold text-gray-600">
@@ -494,50 +785,89 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                     Tour này chưa có lộ trình chi tiết để tính CO2e. Admin có thể thêm các chặng (legs) trong trang quản trị.
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {itinerarySummary.legs.map((leg) => (
-                      <div key={leg.id} className="bg-white rounded-2xl p-4 border border-white/70 shadow-sm">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="font-black text-sm text-primary">
-                            {transportModeLabels[leg.mode]} • {leg.fromName} → {leg.toName}
-                          </div>
-                          <div className="text-xs font-bold text-gray-500">
-                            {leg.distanceKm != null ? `${leg.distanceKm.toFixed(1)} km` : 'Chưa có quãng đường'} •{' '}
-                            {leg.kgCo2e != null ? `${leg.kgCo2e.toFixed(2)} kg CO2e` : 'Chưa tính được CO2e'}
-                          </div>
+                  <div className="relative pl-8 border-l-2 border-dashed border-primary/20 space-y-12 py-4">
+                    {itinerarySummary.legs.map((leg, index) => (
+                      <div key={leg.id} className="relative">
+                        {/* Vertical Timeline Dot/Icon */}
+                        <div className="absolute -left-[41px] top-0 bg-white p-2 rounded-full border-2 border-primary shadow-sm z-10">
+                          {leg.mode === 'WALK' ? <Navigation size={16} className="text-primary" /> : 
+                           leg.mode === 'BIKE' ? <Leaf size={16} className="text-green-600" /> : 
+                           <PackageIcon size={16} className="text-blue-600" />}
                         </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <a
-                            className="text-xs font-bold text-primary underline underline-offset-4"
-                            href={getLegGoogleUrl(leg)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Xem chặng này trên Google Maps
-                          </a>
-                          <button
-                            type="button"
-                            className="text-xs font-bold text-gray-600 underline underline-offset-4"
-                            onClick={() => copyToClipboard(getLegGoogleUrl(leg))}
-                          >
-                            Copy link chặng
-                          </button>
+                        
+                        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-2 py-0.5 rounded-full">
+                                  Chặng {index + 1}
+                                </span>
+                                <span className="text-xs font-bold text-gray-400">
+                                  {leg.distanceKm != null ? `${leg.distanceKm.toFixed(1)} km` : ''}
+                                </span>
+                              </div>
+                              <h4 className="text-lg font-bold text-gray-900 mb-1">
+                                {leg.fromName} → {leg.toName}
+                              </h4>
+                              <p className="text-sm text-gray-500 italic mb-4">
+                                {leg.mode === 'BUS' ? "Tận hưởng sự mát mẻ trên bus điện" : 
+                                 leg.mode === 'WALK' ? "Thong dong đi bộ ngắm cảnh" : 
+                                 leg.mode === 'BIKE' ? "Đạp xe rèn luyện sức khỏe" : "Di chuyển linh hoạt"}
+                                {leg.kgCo2e != null && ` • Giảm ${(leg.savings || 0).toFixed(2)}kg CO2`}
+                              </p>
+                              
+                              <div className="flex flex-wrap items-center gap-3">
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="rounded-full h-8 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary hover:text-white">
+                                      <RefreshCcw size={12} className="mr-1" /> Đổi phương tiện
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2 rounded-2xl">
+                                    <div className="space-y-1">
+                                      {Object.entries(transportModeLabels).map(([key, label]) => (
+                                        <button
+                                          key={key}
+                                          onClick={() => setItineraryModes(prev => ({ ...prev, [leg.id]: key as TransportMode }))}
+                                          className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                            itineraryModes[leg.id] === key ? 'bg-primary text-white' : 'hover:bg-gray-100'
+                                          }`}
+                                        >
+                                          {label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                                
+                                <a
+                                  className="text-[10px] font-bold text-gray-400 hover:text-primary underline underline-offset-4"
+                                  href={getLegGoogleUrl(leg)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Google Maps
+                                </a>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-primary/5 rounded-2xl p-4 text-center min-w-[100px]">
+                              <div className="text-[9px] font-black uppercase text-gray-400 mb-1">Phát thải</div>
+                              <div className="text-xl font-black text-primary">
+                                {leg.kgCo2e != null ? leg.kgCo2e.toFixed(2) : '--'}
+                              </div>
+                              <div className="text-[9px] font-bold text-primary/60">kg CO2e</div>
+                            </div>
+                          </div>
+                          {leg.note && (
+                            <div className="mt-4 pt-4 border-t border-gray-50 flex items-start gap-2">
+                              <Info size={14} className="text-gray-400 mt-0.5" />
+                              <p className="text-xs text-gray-500 italic">{leg.note}</p>
+                            </div>
+                          )}
                         </div>
-                        {leg.note && <div className="mt-2 text-xs text-gray-500 italic">{leg.note}</div>}
                       </div>
                     ))}
-
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="rounded-2xl bg-white p-4 border border-white/70">
-                        <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Total Distance</div>
-                        <div className="text-2xl font-black text-primary">{itinerarySummary.totalDistanceKm.toFixed(1)} km</div>
-                      </div>
-                      <div className="rounded-2xl bg-white p-4 border border-white/70">
-                        <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Total Emissions</div>
-                        <div className="text-2xl font-black text-primary">{itinerarySummary.totalKgCo2e.toFixed(2)} kg CO2e</div>
-                        <div className="text-[10px] text-gray-500 mt-1">Tính theo số khách hiện tại</div>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -553,36 +883,56 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
                 </AlertDialogDescription>
               </AlertDialogHeader>
 
-              {itinerarySummary.legs.length === 0 ? (
-                <div className="text-sm text-muted-foreground">Chưa có lộ trình chi tiết để tổng kết.</div>
+              {itinerarySummary.legs.length === 0 && trackedDistance === 0 ? (
+                <div className="text-sm text-muted-foreground">Chưa có lộ trình chi tiết hoặc dữ liệu theo dõi để tổng kết.</div>
               ) : (
                 <div className="space-y-4">
+                  {trackedDistance > 0 && (
+                    <div className="rounded-xl border border-green-100 bg-green-50 p-4 mb-4">
+                      <div className="text-sm font-black text-green-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <Navigation size={14} /> Hành trình thực tế
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-[10px] text-green-600 uppercase font-bold">Quãng đường di chuyển</div>
+                          <div className="text-xl font-black text-green-800">{trackedDistance.toFixed(2)} km</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-green-600 uppercase font-bold">Khí thải thực tế ({transportModeLabels[trackingMode]})</div>
+                          <div className="text-xl font-black text-green-800">{trackedEmissions.toFixed(2)} kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="rounded-xl border p-3">
                       <div className="text-xs text-muted-foreground">Số khách</div>
                       <div className="text-lg font-semibold">{travelerCount}</div>
                     </div>
                     <div className="rounded-xl border p-3">
-                      <div className="text-xs text-muted-foreground">Tổng quãng đường</div>
+                      <div className="text-xs text-muted-foreground">Lộ trình dự kiến</div>
                       <div className="text-lg font-semibold">{itinerarySummary.totalDistanceKm.toFixed(1)} km</div>
                     </div>
                     <div className="rounded-xl border p-3">
-                      <div className="text-xs text-muted-foreground">Tổng CO2e</div>
+                      <div className="text-xs text-muted-foreground">Dự kiến CO2e</div>
                       <div className="text-lg font-semibold">{itinerarySummary.totalKgCo2e.toFixed(2)} kg</div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border p-3">
-                    <div className="text-sm font-semibold mb-2">Theo phương tiện</div>
-                    <div className="space-y-2">
-                      {emissionsByMode.map(([mode, v]) => (
-                        <div key={mode} className="flex items-center justify-between text-sm">
-                          <div className="font-medium">{transportModeLabels[mode as keyof typeof transportModeLabels] ?? mode}</div>
-                          <div className="text-muted-foreground">{v.km.toFixed(1)} km • {v.kg.toFixed(2)} kg CO2e</div>
-                        </div>
-                      ))}
+                  {itinerarySummary.legs.length > 0 && (
+                    <div className="rounded-xl border p-3">
+                      <div className="text-sm font-semibold mb-2">Dự kiến theo phương tiện</div>
+                      <div className="space-y-2">
+                        {emissionsByMode.map(([mode, v]) => (
+                          <div key={mode} className="flex items-center justify-between text-sm">
+                            <div className="font-medium">{transportModeLabels[mode as keyof typeof transportModeLabels] ?? mode}</div>
+                            <div className="text-muted-foreground">{v.km.toFixed(1)} km • {v.kg.toFixed(2)} kg CO2e</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -594,7 +944,7 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
           </AlertDialog>
 
           {/* Booking Sidebar */}
-          <div className="lg:col-span-4">
+          <div id="booking-section" className="lg:col-span-4">
             <motion.div 
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -752,6 +1102,29 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
           </div>
         </div>
       </div>
+      {/* Mobile Sticky Booking Bar */}
+      <motion.div 
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-0 left-0 right-0 z-[100] lg:hidden bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 pb-8"
+      >
+        <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase text-gray-400">Giá chỉ từ</span>
+            <span className="text-lg font-black text-primary">{travelPackage.price.toLocaleString()} VNĐ</span>
+          </div>
+          <Button 
+            onClick={() => {
+              const element = document.getElementById('booking-section');
+              element?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex-1 bg-primary hover:bg-gray-900 text-white h-14 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 group"
+          >
+            Đặt Tour Ngay
+            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </div>
+      </motion.div>
     </div>
   )
 }

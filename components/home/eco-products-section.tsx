@@ -106,13 +106,9 @@ export function EcoProductsSection() {
                     {/* Decorative Pattern in Card */}
                     <div className="absolute top-0 right-0 w-16 h-16 opacity-[0.03] vn-pattern-gold pointer-events-none" />
                     
-                    <div className="flex items-center gap-1 mb-3">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={14} 
-                          className={i < product.rating ? "fill-secondary text-secondary" : "text-gray-200"} 
-                        />
+                    <div className="flex items-center gap-1">
+                      {[...Array(product.rating)].map((_, i) => (
+                        <Star key={i} size={12} className="fill-secondary text-secondary" />
                       ))}
                     </div>
                     

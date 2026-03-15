@@ -90,7 +90,7 @@ const Navbar = () => {
               </div>
               <motion.div 
                 whileHover={{ scale: 1.05 }}
-                className={`flex items-center gap-2 cursor-pointer bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-500 text-primary rounded-full font-black shadow-[0_0_15px_rgba(255,255,0,0.3)] ${isScrolled ? 'px-2 py-0.5 text-[8px]' : 'px-3 py-1 text-[9px]'}`}
+                className={`flex items-center gap-2 cursor-pointer bg-gradient-to-r from-cyan-400 via-cyan-200 to-cyan-500 text-primary rounded-full font-black shadow-[0_0_15px_rgba(34,211,238,0.3)] ${isScrolled ? 'px-2 py-0.5 text-[8px]' : 'px-3 py-1 text-[9px]'}`}
               >
                 <Crown size={isScrolled ? 8 : 10} />
                 <span>THÀNH VIÊN VIP</span>
