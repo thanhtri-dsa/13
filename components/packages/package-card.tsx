@@ -41,22 +41,22 @@ export function PackageCard({ package: pkg }: PackageCardProps) {
           </p>
           {pkg.type && (
             <p className="text-gray-600 text-sm md:text-base capitalize flex items-center">
-              <span className="mr-2"> <Tag /></span>
-              Type: {pkg.type}
+              <span className="mr-2"> <Tag size={16} /></span>
+              Loại: {pkg.type}
             </p>
           )}
         </div>
-        <div className="flex justify-between items-center mt-4">
-          <p className="text-gray-700 font-semibold text-base md:text-lg">
-            Kes. {pkg.price.toLocaleString()}
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-50">
+          <p className="text-primary font-black text-sm md:text-lg">
+            {pkg.price.toLocaleString()} VNĐ
           </p>
           <Link href={`/packages/${pkg.id}`} className="group">
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white transition-all 
-              duration-300 text-xs sm:text-sm px-3 py-1 sm:px-4 sm:py-2 flex items-center"
+              className="bg-primary hover:bg-gray-900 text-white transition-all 
+              duration-300 text-[10px] font-black uppercase tracking-widest px-4 py-2 flex items-center rounded-xl shadow-lg"
             >
-              <span className="mr-1 sm:mr-2 whitespace-nowrap">View Details</span>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:translate-x-1" />
+              <span className="mr-2 whitespace-nowrap">Chi tiết</span>
+              <ArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" />
             </Button>
           </Link>
         </div>
