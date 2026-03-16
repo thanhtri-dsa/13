@@ -5,22 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign, Crown, Star, Share2, Heart, CheckCircle2, ShieldCheck, ChevronRight, Leaf, Compass, Utensils, Award, Navigation, Play, Square, RefreshCcw, TreeDeciduous, Package as PackageIcon, Info } from "lucide-react"
+import { ArrowLeft, MapPin, Calendar, Clock, Users, DollarSign, Crown, Share2, Heart, CheckCircle2, ShieldCheck, ChevronRight, Leaf, Compass, Utensils, Award, Navigation, Play, Square, RefreshCcw, Info } from "lucide-react"
 import { motion, AnimatePresence } from 'framer-motion'
 import { computeDistanceKm, computeLegKgCo2e, normalizeMode, transportModeLabels, haversineDistanceKm, TransportMode } from '@/lib/emissions'
 import { format } from "date-fns"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import Link from 'next/link'
 import Image from 'next/image'
@@ -79,11 +69,10 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
   const [errors, setErrors] = useState<FormErrors>({})
   const [isLiked, setIsLiked] = useState(false)
   const [travelerCount, setTravelerCount] = useState(1)
-  const [showTripSummary, setShowTripSummary] = useState(false)
   const formRef = React.useRef<HTMLFormElement>(null)
 
   // Wake Lock state to keep screen on
-  const [wakeLock, setWakeLock] = useState<any>(null)
+  const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
 
   // Live Tracking States
   const [isTracking, setIsTracking] = useState(false)
@@ -111,7 +100,7 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
     const requestWakeLock = async () => {
       if ('wakeLock' in navigator && isTracking) {
         try {
-          const lock = await (navigator as any).wakeLock.request('screen');
+          const lock = await (navigator as any).wakeLock.request('screen') as WakeLockSentinel;
           setWakeLock(lock);
           console.log("Wake Lock is active");
         } catch (err) {
@@ -127,9 +116,11 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
     }
 
     return () => {
-      if (wakeLock) wakeLock.release().then(() => setWakeLock(null));
+      if (wakeLock) {
+        wakeLock.release().then(() => setWakeLock(null));
+      }
     };
-  }, [isTracking]);
+  }, [isTracking, wakeLock]);
 
   // Local state for itinerary leg modes (to allow real-time changes)
   const [itineraryModes, setItineraryModes] = useState<Record<string, TransportMode>>({})
@@ -256,19 +247,6 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
     return pts.length >= 2 ? pts : undefined
   }, [itinerarySummary.legs])
 
-  const emissionsByMode = useMemo(() => {
-    const byMode = new Map<string, { km: number; kg: number }>()
-    for (const leg of itinerarySummary.legs) {
-      const key = leg.mode
-      const current = byMode.get(key) ?? { km: 0, kg: 0 }
-      byMode.set(key, {
-        km: current.km + (leg.distanceKm ?? 0),
-        kg: current.kg + (leg.kgCo2e ?? 0),
-      })
-    }
-    return Array.from(byMode.entries()).sort((a, b) => b[1].kg - a[1].kg)
-  }, [itinerarySummary.legs])
-
   const googleTripUrl = useMemo(() => {
     if (itinerarySummary.legs.length === 0) return null
     const originLeg = itinerarySummary.legs[0]
@@ -286,34 +264,6 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
     if (waypoints.length === 0) return base
     return `${base}&waypoints=${enc(waypoints.join('|'))}`
   }, [itinerarySummary.legs])
-
-  const getLegTravelMode = (mode: string) => {
-    if (mode === 'WALK') return 'walking'
-    if (mode === 'BIKE') return 'bicycling'
-    if (mode === 'BUS' || mode === 'TRAIN') return 'transit'
-    if (mode === 'PLANE' || mode === 'BOAT') return 'transit'
-    return 'driving'
-  }
-
-  const getLegGoogleUrl = (leg: (typeof itinerarySummary.legs)[number]) => {
-    const enc = (v: string) => encodeURIComponent(v)
-    const coord = (lat?: number | null, lng?: number | null) =>
-      typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng) ? `${lat},${lng}` : null
-
-    const origin = coord(leg.fromLat, leg.fromLng) ?? leg.fromName
-    const destination = coord(leg.toLat, leg.toLng) ?? leg.toName
-    const travelmode = getLegTravelMode(leg.mode)
-    return `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(destination)}&travelmode=${enc(travelmode)}`
-  }
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success('Đã copy link')
-    } catch {
-      toast.error('Không copy được link trên trình duyệt này')
-    }
-  }
 
   const validateForm = (formData: FormData): FormErrors => {
     const errors: FormErrors = {}
@@ -507,7 +457,7 @@ export default function PackageDestination({ package: travelPackage }: PackageDe
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'info' | 'itinerary' | 'booking')}
               className={`flex-1 flex flex-col items-center py-3 px-1 transition-all relative ${
                 activeTab === tab.id ? 'text-primary' : 'text-gray-400'
               }`}
