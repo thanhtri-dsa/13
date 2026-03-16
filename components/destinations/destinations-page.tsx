@@ -1,7 +1,7 @@
 'use client'
 
 import { useState,} from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DestinationCard } from '@/components/destinations/destination-card'
 import { DestinationCardSkeleton } from '@/components/destinations/destinations-card-skeleton'
@@ -9,6 +9,7 @@ import { CountrySidebar } from '@/components/destinations/location-sidebar'
 import { Destination } from '@/types/destinations'
 import Image from 'next/image';
 import DestinationsMapLoader from '@/components/ui/DestinationsMapLoader'
+import { motion } from 'framer-motion'
 
 interface DestinationsPageProps {
   initialDestinations: Destination[]
@@ -38,17 +39,17 @@ export default function DestinationsPage({ initialDestinations, country }: Desti
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-green-100">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-primary/5">
         <div className="text-center space-y-6 max-w-md mx-auto">
           <h2 className="text-3xl font-bold text-red-600">
-            Error Loading Destinations
+            Lỗi tải dữ liệu
           </h2>
           <p className="text-gray-600 text-lg">{error}</p>
           <Button
             onClick={() => window.location.reload()}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+            className="bg-primary hover:bg-gray-900 text-white px-8 py-3 text-lg rounded-2xl"
           >
-            Try Again
+            Thử lại
           </Button>
         </div>
       </div>
@@ -56,67 +57,76 @@ export default function DestinationsPage({ initialDestinations, country }: Desti
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6efe5] to-white">
+    <div className="min-h-screen bg-[#f8fafc]">
       {/* Hero Section */}
-      <div className="relative z-10 overflow-hidden bg-black text-white">
-        <div className="h-40">
+      <div className="relative z-10 overflow-hidden bg-primary h-[35vh] md:h-[45vh] flex items-center justify-center">
         <Image
-        src="/images/packages.jpeg"
-        alt="image"
-        width={1920}
-        height={160}
-        className="z-1 absolute left-0 top-0 h-full w-full object-cover"
-        priority
-      />
-          <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg text-center px-4 capitalize">
+          src="/images/packages.jpeg"
+          alt="Eco-Tour Destinations"
+          fill
+          className="z-0 object-cover opacity-60"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-transparent to-[#f8fafc]" />
+        
+        <div className="relative z-10 text-center px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <span className="inline-block px-4 py-1 rounded-full bg-secondary text-primary font-black text-[10px] uppercase tracking-widest mb-4 shadow-xl">
+              Khám phá vẻ đẹp thế giới
+            </span>
+            <h1 className="text-4xl md:text-7xl font-serif font-black text-white drop-shadow-2xl capitalize">
               {country 
-                ? `${country} Destinations` 
-                : 'Explore Destinations'
+                ? `Điểm đến ${country}` 
+                : 'Tất cả điểm đến'
               }
             </h1>
-          </div>
+          </motion.div>
         </div>
-        <div
-          className="relative z-20 h-32 w-full -scale-y-[1] bg-contain bg-repeat-x"
-          style={{
-            backgroundImage: "url('/images/banner_style.png')",
-            filter:
-              "invert(92%) sepia(2%) saturate(1017%) hue-rotate(342deg) brightness(106%) contrast(93%)",
-          }}
-        />
       </div>
-
-    
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-      <div className="text-center mb-8 md:mb-12 lg:mb-16">
-      <div className="inline-flex items-center justify-center mb-4 md:mb-6">
-        <span className="text-xs sm:text-sm md:text-base font-semibold uppercase tracking-wide text-green-800 bg-green-100 px-2 sm:px-3 py-1 rounded-full">
-          Explore our top Destinations
-        </span>
-      </div>
-      <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 md:mb-6 leading-tight text-center">
-        Our <span className="text-green-600">Featured</span>{" "}
-        Destinations
-      </h2>
-      
-      {/* Destinations Map */}
-      <div className="mb-12">
-        <DestinationsMapLoader destinations={filteredDestinations} country={country} />
-      </div>
-    </div>
-        <div className="flex flex-col lg:flex-row">
-          {/* Country Sidebar (hidden on small screens) */}
-          <div className="hidden lg:block">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 md:-mt-20 relative z-20 pb-20">
+        {/* Destinations Map Section */}
+        <div className="bg-white p-4 md:p-8 rounded-[2rem] md:rounded-[3rem] shadow-xl border border-white mb-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+            <div>
+              <h2 className="text-xl md:text-3xl font-serif font-black flex items-center gap-3 text-primary uppercase">
+                <div className="h-6 md:h-8 w-1.5 bg-secondary rounded-full" />
+                Bản đồ điểm đến
+              </h2>
+              <p className="text-xs text-gray-400 font-medium italic">Khám phá các tọa độ du lịch xanh trên toàn cầu</p>
+            </div>
+          </div>
+          <div className="rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden border-4 border-gray-50 shadow-inner h-[300px] md:h-[500px]">
+            <DestinationsMapLoader destinations={filteredDestinations} country={country} />
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Country Sidebar */}
+          <div className="w-full lg:w-64">
             <CountrySidebar />
           </div>
 
           {/* Destination Cards */}
           <div className="flex-1">
+            <div className="bg-white/50 backdrop-blur-sm p-4 rounded-3xl mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tight">
+                  {country ? `Khu vực ${country}` : "Toàn thế giới"}
+                </h2>
+                <p className="text-xs text-gray-500 font-medium italic">
+                  Hiện có {filteredDestinations.length} điểm đến nổi bật
+                </p>
+              </div>
+            </div>
+
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <DestinationCardSkeleton key={index} />
                 ))}
@@ -124,20 +134,23 @@ export default function DestinationsPage({ initialDestinations, country }: Desti
             ) : (
               <>
                 {displayedDestinations.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                     {displayedDestinations.map((destination) => (
                       <DestinationCard key={destination.id} destination={destination} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-16">
-                    <h3 className="text-2xl font-semibold text-gray-600 mb-2">
-                      No destinations found
+                  <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-gray-200">
+                    <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <MapPin size={32} className="text-gray-300" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      Không tìm thấy điểm đến nào
                     </h3>
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 italic px-4">
                       {country
-                        ? `No destinations available for ${country}. Try exploring other countries.`
-                        : "Check back later for exciting new travel destinations."}
+                        ? `Hiện tại chưa có điểm đến nào tại "${country}".`
+                        : "Chúng tôi đang cập nhật thêm nhiều điểm đến mới."}
                     </p>
                   </div>
                 )}
@@ -146,27 +159,32 @@ export default function DestinationsPage({ initialDestinations, country }: Desti
 
             {/* Pagination */}
             {!loading && totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-12">
+              <div className="flex justify-center items-center gap-6 mt-16">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="w-12 h-12 rounded-full hover:bg-green-50 hover:text-green-600 hover:border-green-600"
+                  className="w-12 h-12 rounded-2xl border-white bg-white shadow-sm hover:bg-primary hover:text-white transition-all"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
 
-                <span className="text-lg font-bold text-gray-700">
-                  Page {currentPage} of {totalPages}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-primary">
+                    {currentPage}
+                  </span>
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                    / {totalPages}
+                  </span>
+                </div>
 
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-12 h-12 rounded-full hover:bg-green-50 hover:text-green-600 hover:border-green-600"
+                  className="w-12 h-12 rounded-2xl border-white bg-white shadow-sm hover:bg-primary hover:text-white transition-all"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>

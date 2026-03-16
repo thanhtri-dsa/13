@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Package as PackageIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { PackageCard } from "@/components/packages/package-card";
 import { PackageCardSkeleton } from "@/components/packages/packageSkeleton";
 import { PackageSidebar } from "@/components/packages/location-sidebar";
 import { Package } from "@/types/packages";
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 const CACHE_KEY = "packages_data";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -83,17 +84,17 @@ export default function PackagesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-green-100">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-primary/5">
         <div className="text-center space-y-6 max-w-md mx-auto">
           <h2 className="text-3xl font-bold text-red-600">
-            Error Loading Packages
+            Lỗi tải dữ liệu
           </h2>
           <p className="text-gray-600 text-lg">{error}</p>
           <Button
             onClick={() => window.location.reload()}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+            className="bg-primary hover:bg-gray-900 text-white px-8 py-3 text-lg rounded-2xl"
           >
-            Try Again
+            Thử lại
           </Button>
         </div>
       </div>
@@ -101,52 +102,39 @@ export default function PackagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6efe5]">
+    <div className="min-h-screen bg-[#f8fafc]">
       {/* Hero Section */}
-      <div className="relative z-10 overflow-hidden bg-black text-white">
-        <div className="h-40">
+      <div className="relative z-10 overflow-hidden bg-primary h-[35vh] md:h-[45vh] flex items-center justify-center">
         <Image
-        src="/images/hero_packages.jpg"
-        alt="image"
-        width={1920}
-        height={160}
-        className="z-1 absolute left-0 top-0 h-full w-full object-cover"
-        priority
-      />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg text-center px-4">
-              Explore Packages
-            </h1>
-          </div>
-        </div>
-        <div
-          className="relative z-20 h-32 w-full -scale-y-[1] bg-contain bg-repeat-x"
-          style={{
-            backgroundImage: "url('/images/banner_style.png')",
-            filter:
-              "invert(92%) sepia(2%) saturate(1017%) hue-rotate(342deg) brightness(106%) contrast(93%)",
-          }}
+          src="/images/hero_packages.jpg"
+          alt="Eco-Tour Packages"
+          fill
+          className="z-0 object-cover opacity-60"
+          priority
         />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-transparent to-[#f8fafc]" />
+        
+        <div className="relative z-10 text-center px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <span className="inline-block px-4 py-1 rounded-full bg-secondary text-primary font-black text-[10px] uppercase tracking-widest mb-4 shadow-xl">
+              Khám phá hành trình xanh
+            </span>
+            <h1 className="text-4xl md:text-7xl font-serif font-black text-white drop-shadow-2xl">
+              Gói Tour <span className="text-secondary italic">VIP</span>
+            </h1>
+          </motion.div>
+        </div>
       </div>
-
-     
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-      <div className="text-center mb-8 md:mb-12 lg:mb-16">
-      <div className="inline-flex items-center justify-center mb-4 md:mb-6">
-        <span className="text-xs sm:text-sm md:text-base font-semibold uppercase tracking-wide text-green-800 bg-green-100 px-2 sm:px-3 py-1 rounded-full">
-          Explore our top Packages
-        </span>
-      </div>
-      <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 md:mb-6 leading-tight">
-        Our <span className="text-green-600">Featured</span>{" "}
-      Packages 
-      </h2>
-    </div>
-        <div className="flex flex-col lg:flex-row">
-          {/* Package Sidebar (hidden on small screens) */}
-          <div className="hidden lg:block">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 md:-mt-20 relative z-20 pb-20">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Package Sidebar */}
+          <div className="w-full lg:w-64">
             <PackageSidebar
               onCategorySelect={handleCategorySelect}
               selectedCategory={selectedCategory}
@@ -155,8 +143,28 @@ export default function PackagesPage() {
 
           {/* Package Cards */}
           <div className="flex-1">
+            <div className="bg-white/50 backdrop-blur-sm p-4 rounded-3xl mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-primary uppercase tracking-tight">
+                  {selectedCategory || "Tất cả gói tour"}
+                </h2>
+                <p className="text-xs text-gray-500 font-medium italic">
+                  Tìm thấy {filteredPackages.length} hành trình phù hợp
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sắp xếp:</span>
+                <select className="text-[10px] font-black text-primary bg-white border border-gray-100 rounded-full px-4 py-2 focus:outline-none shadow-sm">
+                  <option>Mới nhất</option>
+                  <option>Giá thấp đến cao</option>
+                  <option>Giá cao đến thấp</option>
+                </select>
+              </div>
+            </div>
+
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <PackageCardSkeleton key={index} />
                 ))}
@@ -164,21 +172,31 @@ export default function PackagesPage() {
             ) : (
               <>
                 {displayedPackages.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                     {displayedPackages.map((pkg) => (
                       <PackageCard key={pkg.id} package={pkg} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-16">
-                    <h3 className="text-2xl font-semibold text-gray-600 mb-2">
-                      No packages found
+                  <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-gray-200">
+                    <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <PackageIcon size={32} className="text-gray-300" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      Không tìm thấy gói tour nào
                     </h3>
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 italic px-4">
                       {selectedCategory
-                        ? `No packages available for ${selectedCategory}. Try selecting a different category.`
-                        : "Check back later for exciting new travel packages."}
+                        ? `Hiện tại chưa có gói tour nào thuộc danh mục "${selectedCategory}".`
+                        : "Vui lòng quay lại sau để cập nhật các hành trình mới nhất."}
                     </p>
+                    <Button 
+                      onClick={() => handleCategorySelect(null)}
+                      variant="outline" 
+                      className="mt-8 rounded-full border-primary/20 text-primary"
+                    >
+                      Xem tất cả gói tour
+                    </Button>
                   </div>
                 )}
               </>
@@ -186,7 +204,7 @@ export default function PackagesPage() {
 
             {/* Pagination */}
             {!loading && totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-12">
+              <div className="flex justify-center items-center gap-6 mt-16">
                 <Button
                   variant="outline"
                   size="icon"
@@ -194,14 +212,19 @@ export default function PackagesPage() {
                     setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
                   disabled={currentPage === 1}
-                  className="w-12 h-12 rounded-full hover:bg-green-50 hover:text-green-600 hover:border-green-600"
+                  className="w-12 h-12 rounded-2xl border-white bg-white shadow-sm hover:bg-primary hover:text-white transition-all"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
 
-                <span className="text-lg font-medium text-gray-700">
-                  Page {currentPage} of {totalPages}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-primary">
+                    {currentPage}
+                  </span>
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                    / {totalPages}
+                  </span>
+                </div>
 
                 <Button
                   variant="outline"
@@ -210,7 +233,7 @@ export default function PackagesPage() {
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="w-12 h-12 rounded-full hover:bg-green-50 hover:text-green-600 hover:border-green-600"
+                  className="w-12 h-12 rounded-2xl border-white bg-white shadow-sm hover:bg-primary hover:text-white transition-all"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>
