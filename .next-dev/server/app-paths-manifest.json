@@ -1,3 +1,6 @@
 {
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
+  "/api/destinations/route": "app/api/destinations/route.js",
+  "/api/blogs/route": "app/api/blogs/route.js",
   "/(main)/page": "app/(main)/page.js"
 }

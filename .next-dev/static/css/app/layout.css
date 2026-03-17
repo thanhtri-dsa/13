@@ -1431,9 +1431,6 @@ body {
 .h-\[60vh\] {
   height: 60vh;
 }
-.h-\[650px\] {
-  height: 650px;
-}
 .h-\[70vh\] {
   height: 70vh;
 }
@@ -1710,8 +1707,8 @@ body {
 .max-w-\[200px\] {
   max-width: 200px;
 }
-.max-w-\[240px\] {
-  max-width: 240px;
+.max-w-\[220px\] {
+  max-width: 220px;
 }
 .max-w-\[380px\] {
   max-width: 380px;
@@ -2018,9 +2015,6 @@ body {
 .gap-2 {
   gap: 0.5rem;
 }
-.gap-24 {
-  gap: 6rem;
-}
 .gap-3 {
   gap: 0.75rem;
 }
@@ -2250,8 +2244,8 @@ body {
 .border-8 {
   border-width: 8px;
 }
-.border-\[12px\] {
-  border-width: 12px;
+.border-\[8px\] {
+  border-width: 8px;
 }
 .border-y {
   border-top-width: 1px;
@@ -3108,6 +3102,9 @@ body {
 }
 .pl-4 {
   padding-left: 1rem;
+}
+.pl-5 {
+  padding-left: 1.25rem;
 }
 .pl-6 {
   padding-left: 1.5rem;
@@ -6089,6 +6086,9 @@ body {
   .md\:mb-12 {
     margin-bottom: 3rem;
   }
+  .md\:mb-2 {
+    margin-bottom: 0.5rem;
+  }
   .md\:mb-4 {
     margin-bottom: 1rem;
   }
@@ -6164,6 +6164,9 @@ body {
   .md\:h-\[600px\] {
     height: 600px;
   }
+  .md\:h-\[650px\] {
+    height: 650px;
+  }
   .md\:h-\[80vh\] {
     height: 80vh;
   }
@@ -6200,6 +6203,9 @@ body {
   .md\:w-auto {
     width: auto;
   }
+  .md\:max-w-\[240px\] {
+    max-width: 240px;
+  }
   .md\:max-w-\[420px\] {
     max-width: 420px;
   }
@@ -6230,6 +6236,9 @@ body {
   }
   .md\:gap-20 {
     gap: 5rem;
+  }
+  .md\:gap-24 {
+    gap: 6rem;
   }
   .md\:gap-3 {
     gap: 0.75rem;
@@ -6267,8 +6276,14 @@ body {
   .md\:rounded-\[2\.5rem\] {
     border-radius: 2.5rem;
   }
+  .md\:rounded-\[2rem\] {
+    border-radius: 2rem;
+  }
   .md\:rounded-\[3rem\] {
     border-radius: 3rem;
+  }
+  .md\:border-\[12px\] {
+    border-width: 12px;
   }
   .md\:p-10 {
     padding: 2.5rem;
@@ -6293,6 +6308,10 @@ body {
   }
   .md\:p-8 {
     padding: 2rem;
+  }
+  .md\:px-10 {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
   }
   .md\:px-4 {
     padding-left: 1rem;
@@ -6340,6 +6359,12 @@ body {
   .md\:pb-24 {
     padding-bottom: 6rem;
   }
+  .md\:pl-8 {
+    padding-left: 2rem;
+  }
+  .md\:pt-6 {
+    padding-top: 1.5rem;
+  }
   .md\:text-left {
     text-align: left;
   }
@@ -6370,6 +6395,9 @@ body {
   .md\:text-8xl {
     font-size: 6rem;
     line-height: 1;
+  }
+  .md\:text-\[11px\] {
+    font-size: 11px;
   }
   .md\:text-\[12px\] {
     font-size: 12px;

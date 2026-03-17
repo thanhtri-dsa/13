@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 
 export function FeaturesSection() {
   return (
-    <section className="py-32 relative overflow-hidden bg-white">
+    <section className="py-16 md:py-32 relative overflow-hidden bg-white">
       {/* Decorative Gold Pattern Overlay */}
       <div className="absolute inset-0 vn-pattern-gold opacity-[0.02] pointer-events-none" />
       
@@ -17,54 +17,63 @@ export function FeaturesSection() {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid gap-24 lg:grid-cols-2 items-center">
+        <div className="grid gap-12 md:gap-24 lg:grid-cols-2 items-center">
           <motion.div 
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="space-y-12"
+            className="space-y-8 md:space-y-12"
           >
             <div>
-              <div className="inline-flex items-center gap-3 rounded-full bg-secondary/10 px-6 py-2 text-[10px] text-primary font-black uppercase tracking-[0.2em] mb-8 shadow-sm border border-secondary/20">
+              <div className="inline-flex items-center gap-3 rounded-full bg-secondary/10 px-4 md:px-6 py-1.5 md:py-2 text-[10px] md:text-[11px] text-primary font-black uppercase tracking-[0.2em] mb-6 md:mb-8 shadow-sm border border-secondary/20">
                 <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
                 Dịch vụ thượng lưu
               </div>
-              <h2 className="text-4xl md:text-6xl font-serif font-black leading-tight mb-8 text-primary">
+              <h2 className="text-3xl md:text-6xl font-serif font-black leading-tight mb-6 md:mb-8 text-primary">
                 Định nghĩa lại <br/>
                 <span className="text-secondary italic">sự sang trọng</span> bền vững
               </h2>
-              <p className="text-muted-foreground text-xl leading-relaxed italic border-l-4 border-secondary pl-8">
+              <p className="text-muted-foreground text-base md:text-xl leading-relaxed italic border-l-4 border-secondary pl-5 md:pl-8">
                 &quot;Mỗi hành trình tại ZPLore không chỉ là một kỳ nghỉ, mà là một sự kết nối sâu sắc với di sản và thiên nhiên và kết nối khách hàng với mô hình tour mới nhất .&quot;
               </p>
             </div>
 
-            <div className="grid gap-8 sm:grid-cols-2">
+            <div className="grid gap-4 md:gap-8 sm:grid-cols-2">
               {[
                 { icon: Clock, title: "Hỗ trợ 24/7", desc: "Chuyên gia phục vụ riêng biệt" },
                 { icon: Building2, title: "Địa điểm phong phú ", desc: "Tinh hoa kiến trúc Việt" },
                 { icon: FileText, title: "Lịch trình độc lập ", desc: "Thiết kế riêng cho bạn" },
                 { icon: Search, title: "Khám phá bí mật", desc: "Những điểm đến ẩn giấu" },
               ].map((item, idx) => (
-                <div key={idx} className="flex gap-6 p-6 rounded-3xl bg-gray-50 hover:bg-secondary/10 transition-all duration-500 group border border-transparent hover:border-secondary/20">
-                  <div className="flex-shrink-0 rounded-2xl bg-white p-4 shadow-xl shadow-gray-200/50 group-hover:scale-110 transition-transform">
-                    <item.icon className="h-7 w-7 text-primary" />
+                <div key={idx} className="flex gap-4 md:gap-6 p-4 md:p-6 rounded-3xl bg-gray-50 hover:bg-secondary/10 transition-all duration-500 group border border-transparent hover:border-secondary/20">
+                  <div className="flex-shrink-0 rounded-2xl bg-white p-3 md:p-4 shadow-xl shadow-gray-200/50 group-hover:scale-110 transition-transform">
+                    <item.icon className="h-6 w-6 md:h-7 md:w-7 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-black text-primary text-lg mb-1">{item.title}</h4>
-                    <p className="text-sm text-muted-foreground font-medium italic">{item.desc}</p>
+                    <h4 className="font-black text-primary text-base md:text-lg mb-1">{item.title}</h4>
+                    <p className="text-xs md:text-sm text-muted-foreground font-medium italic">{item.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-6 pt-6">
+            <div className="flex flex-wrap gap-4 md:gap-6 pt-4 md:pt-6">
               <Link href="/destinations">
                 <motion.button 
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="rounded-full bg-primary text-white hover:bg-gray-900 px-10 h-14 text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all"
+                  className="rounded-full bg-primary text-white hover:bg-gray-900 px-8 md:px-10 h-12 md:h-14 text-xs md:text-sm font-black uppercase tracking-widest shadow-2xl shadow-primary/20 transition-all"
                 >
                   Đặt hành trình ngay
+                </motion.button>
+              </Link>
+              <Link href="/dream-journey">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="rounded-full border-2 border-secondary text-secondary hover:bg-secondary hover:text-primary px-8 md:px-10 h-12 md:h-14 text-xs md:text-sm font-black uppercase tracking-widest transition-all"
+                >
+                  Hành trình ước mơ
                 </motion.button>
               </Link>
               {/* <Link href="/about">
@@ -86,13 +95,13 @@ export function FeaturesSection() {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="relative z-10 rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.1)] border-[12px] border-white">
+            <div className="relative z-10 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.1)] border-[8px] md:border-[12px] border-white">
               <Image
                 src="/images/travel_detsinations.jpg"
                 alt=" Travel Experience"
                 width={600}
                 height={700}
-                className="object-cover w-full h-[650px]"
+                className="object-cover w-full h-[380px] md:h-[650px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent" />
             </div>
@@ -110,10 +119,10 @@ export function FeaturesSection() {
 
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="absolute -bottom-6 -left-6 z-20 glass-morphism p-8 rounded-[2rem] max-w-[240px] shadow-2xl"
+              className="absolute -bottom-6 -left-6 z-20 glass-morphism p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] max-w-[220px] md:max-w-[240px] shadow-2xl"
             >
-              <p className="text-primary font-black text-4xl mb-2"> </p>
-              <p className="text-xs text-primary/70 font-black uppercase tracking-widest leading-relaxed">
+              <p className="text-primary font-black text-3xl md:text-4xl mb-1 md:mb-2"> </p>
+              <p className="text-[10px] md:text-xs text-primary/70 font-black uppercase tracking-widest leading-relaxed">
                Nhân sự trả lời nhanh nhất thắc mắc nhanh nhất  
               </p>
             </motion.div>
@@ -123,4 +132,3 @@ export function FeaturesSection() {
     </section>
   )
 }
-
